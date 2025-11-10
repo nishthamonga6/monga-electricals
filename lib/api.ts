@@ -8,7 +8,17 @@ type GetProductsParams = { brand?: string; q?: string };
 
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('monga_token');
+  // token may be stored either in the legacy 'monga_token' key or inside the AuthContext storage key
+  const token = localStorage.getItem('monga_token') || (() => {
+    try {
+      const raw = localStorage.getItem('monga_user_v1');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed?.token || null;
+    } catch (e) {
+      return null;
+    }
+  })();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
