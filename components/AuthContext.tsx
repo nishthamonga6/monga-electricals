@@ -22,6 +22,7 @@ type AuthContextValue = {
 };
 
 const KEY = 'monga_user_v1';
+const ACCOUNTS_KEY = 'monga_accounts_v1';
 
 type Stored = { user: User; token?: string };
 
@@ -74,6 +75,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         orders: [],
         searches: [],
       };
+      // persist fallback account so user can log in again after logout
+      try {
+        const raw = localStorage.getItem(ACCOUNTS_KEY);
+        const existing = raw ? (JSON.parse(raw) as User[]) : [];
+        const next = [...existing.filter((a) => a.email !== newUser.email), newUser];
+        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(next));
+      } catch (err) {
+        // ignore
+      }
       setUser(newUser);
       return newUser;
     }
@@ -94,13 +104,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       // fallback to local-storage check
       try {
+        // First check current session storage
         const raw = localStorage.getItem(KEY);
-        if (!raw) return null;
-        const stored: Stored = JSON.parse(raw);
-        if (stored.user?.email === email && stored.user?.password === password) {
-          setUser(stored.user);
-          setToken(stored.token || null);
-          return stored.user;
+        if (raw) {
+          const stored: Stored = JSON.parse(raw);
+          if (stored.user?.email === email && stored.user?.password === password) {
+            setUser(stored.user);
+            setToken(stored.token || null);
+            return stored.user;
+          }
+        }
+
+        // Then check fallback accounts registry (created when offline signing up)
+        const accountsRaw = localStorage.getItem(ACCOUNTS_KEY);
+        if (!accountsRaw) return null;
+        const accounts: User[] = JSON.parse(accountsRaw);
+        const matched = accounts.find((a) => a.email === email && a.password === password);
+        if (matched) {
+          setUser(matched);
+          // no token available for fallback accounts
+          setToken(null);
+          return matched;
         }
         return null;
       } catch (err) {
@@ -110,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   function logout() {
+    // clear active session but keep local fallback accounts (if any)
     setUser(null);
     setToken(null);
   }
