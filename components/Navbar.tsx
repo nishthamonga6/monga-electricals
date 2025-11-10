@@ -34,7 +34,6 @@ export default function Navbar() {
 
         {/* Mobile actions */}
         <div className="md:hidden flex items-center gap-2">
-          <SearchBox />
           <CartButton />
           <ChatTrigger />
           <AuthControls />
