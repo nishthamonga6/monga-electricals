@@ -1,0 +1,27 @@
+import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+import { getDatabase } from '../../../../lib/mongodb';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
+
+export async function GET(req: Request) {
+  try {
+    const auth = req.headers.get('authorization') || '';
+    const token = auth.replace(/^Bearer\s+/i, '');
+    if (!token) return NextResponse.json({ error: 'No token' }, { status: 401 });
+
+    const payload: any = jwt.verify(token, JWT_SECRET);
+    const userId = payload?.sub;
+    if (!userId) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+
+    const db = await getDatabase();
+    const users = db.collection('users');
+    const u = await users.findOne({ _id: new (require('mongodb').ObjectId)(userId) });
+    if (!u) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    return NextResponse.json({ user: { id: u._id.toString(), name: u.name, email: u.email } });
+  } catch (err: any) {
+    console.error('me error', err);
+    return NextResponse.json({ error: err?.message || 'Server error' }, { status: 500 });
+  }
+}

@@ -23,15 +23,22 @@ type AuthContextValue = {
 
 const KEY = 'monga_user_v1';
 
+type Stored = { user: User; token?: string };
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) setUser(JSON.parse(raw));
+      if (raw) {
+        const parsed: Stored = JSON.parse(raw);
+        setUser(parsed.user || null);
+        setToken(parsed.token || null);
+      }
     } catch (e) {
       // ignore
     }
@@ -39,43 +46,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      if (user) localStorage.setItem(KEY, JSON.stringify(user));
+      if (user) localStorage.setItem(KEY, JSON.stringify({ user, token }));
       else localStorage.removeItem(KEY);
     } catch (e) {}
-  }, [user]);
+  }, [user, token]);
 
   async function signup({ name, email, password }: { name: string; email: string; password: string }) {
-    const newUser: User = {
-      id: 'u_' + Date.now(),
-      name,
-      email,
-      password,
-      avatar: null,
-      orders: [],
-      searches: [],
-    };
-    setUser(newUser);
-    return newUser;
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Signup failed');
+      setUser(data.user);
+      setToken(data.token || null);
+      return data.user as User;
+    } catch (e) {
+      // Fallback to local-only behaviour for offline/demo
+      const newUser: User = {
+        id: 'u_' + Date.now(),
+        name,
+        email,
+        password,
+        avatar: null,
+        orders: [],
+        searches: [],
+      };
+      setUser(newUser);
+      return newUser;
+    }
   }
 
   async function login(email: string, password: string) {
-    // For demo: check stored user in localStorage
     try {
-      const raw = localStorage.getItem(KEY);
-      if (!raw) return null;
-      const stored: User = JSON.parse(raw);
-      if (stored.email === email && stored.password === password) {
-        setUser(stored);
-        return stored;
-      }
-      return null;
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Login failed');
+      setUser(data.user);
+      setToken(data.token || null);
+      return data.user as User;
     } catch (e) {
-      return null;
+      // fallback to local-storage check
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (!raw) return null;
+        const stored: Stored = JSON.parse(raw);
+        if (stored.user?.email === email && stored.user?.password === password) {
+          setUser(stored.user);
+          setToken(stored.token || null);
+          return stored.user;
+        }
+        return null;
+      } catch (err) {
+        return null;
+      }
     }
   }
 
   function logout() {
     setUser(null);
+    setToken(null);
   }
 
   function updateProfile(patch: Partial<User>) {
