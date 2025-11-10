@@ -1,76 +1,57 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import Image from 'next/image';
 import { useCart } from '@/components/CartContext';
-
-type Product = { id: string; name: string; price: number; desc?: string };
+import { brands, products as allProducts, Product as PType } from '@/lib/products';
 
 export default function ProductsPage() {
   const { add } = useCart();
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const raw = localStorage.getItem('monga_products_v1');
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      return [];
-    }
-  });
 
-  const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
-  const [desc, setDesc] = useState('');
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('monga_products_v1', JSON.stringify(products));
-    } catch (e) {}
-  }, [products]);
-
-  function addProduct(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name || !price) return;
-    const p: Product = { id: String(Date.now()), name: name.trim(), price: Number(price), desc: desc.trim() };
-    setProducts((s) => [p, ...s]);
-    setName('');
-    setPrice('');
-    setDesc('');
-  }
+  // Group products by brand id (using brands list as source of truth)
+  const grouped = brands.map((b) => ({ brand: b, items: allProducts.filter((p) => p.brand && p.brand.toLowerCase() === b.name.toLowerCase()) }));
 
   return (
     <div className="container-section py-12">
-      <h2 className="text-2xl font-bold">Manage Products</h2>
+      <h2 className="text-2xl font-bold">Products</h2>
+      <p className="text-sm text-gray-600 mt-2">Browse products grouped by the brands we carry.</p>
 
-      <section className="mt-6 p-4 bg-white rounded shadow-sm">
-        <h3 className="font-semibold">Add product</h3>
-        <form className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3" onSubmit={addProduct}>
-          <input className="p-2 border rounded" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-          <input className="p-2 border rounded" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} />
-          <input className="p-2 border rounded" placeholder="Short description" value={desc} onChange={(e) => setDesc(e.target.value)} />
-          <div className="sm:col-span-3">
-            <button type="submit" className="mt-3 px-4 py-2 bg-brand text-white rounded">Add product</button>
-          </div>
-        </form>
-      </section>
-
-      <section className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.length === 0 && <p className="text-sm text-gray-600">No products yet — add one above.</p>}
-        {products.map((p) => (
-          <div key={p.id} className="bg-white p-4 rounded shadow-sm">
-            <h4 className="font-semibold">{p.name}</h4>
-            <p className="text-sm text-gray-600">{p.desc}</p>
-            <div className="mt-3 flex items-center justify-between">
-              <div className="text-lg font-medium">₹{p.price.toFixed(2)}</div>
-              <div>
-                <button
-                  className="px-3 py-1 border rounded"
-                  onClick={() => add({ id: p.id, name: p.name, qty: 1, price: p.price })}
-                >
-                  Add to cart
-                </button>
-              </div>
+      <div className="mt-6 space-y-8">
+        {grouped.map(({ brand, items }) => (
+          <section key={brand.id}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold">{brand.name}</h3>
+              <span className="text-sm text-gray-500">{items.length} items</span>
             </div>
-          </div>
+
+            {items.length === 0 ? (
+              <div className="mt-3 text-sm text-gray-600">No products listed for {brand.name}.</div>
+            ) : (
+              <div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {items.map((p: PType) => (
+                  <div key={p.id} className="bg-white p-4 rounded shadow-sm flex flex-col">
+                    <div className="h-28 w-full relative mb-3 bg-gray-50 flex items-center justify-center">
+                      {p.image ? (
+                        // Use Image when available; fallback to an <img> tag if next/image can't optimize SVG locally
+                        <img src={p.image} alt={p.name} className="max-h-20" />
+                      ) : (
+                        <div className="text-sm text-gray-400">No image</div>
+                      )}
+                    </div>
+                    <h4 className="font-semibold">{p.name}</h4>
+                    <p className="text-sm text-gray-600 flex-1">{p.desc}</p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="text-lg font-medium">₹{p.price.toFixed(2)}</div>
+                      <button className="px-3 py-1 border rounded" onClick={() => add({ id: p.id, name: p.name, qty: 1, price: p.price })}>
+                        Add to cart
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         ))}
-      </section>
+      </div>
     </div>
   );
 }
