@@ -19,7 +19,16 @@ export async function getMongoClient() {
   return cached.client;
 }
 
-export async function getDatabase(dbName = 'monga') {
+export async function getDatabase(dbName?: string) {
   const client = await getMongoClient();
-  return client.db(dbName);
+  const name = dbName || process.env.MONGODB_DB || (() => {
+    // try to parse DB from URI if present (mongodb://host:port/dbname)
+    try {
+      const m = (process.env.MONGODB_URI || '').match(/\/([A-Za-z0-9_-]+)(?:\?|$)/);
+      return m ? m[1] : 'MONGA_ELECTRICALS';
+    } catch (e) {
+      return 'MONGA_ELECTRICALS';
+    }
+  })();
+  return client.db(name);
 }
