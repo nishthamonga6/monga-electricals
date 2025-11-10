@@ -5,6 +5,9 @@ import { getDatabase } from '../../../../lib/mongodb';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 
 export async function GET(req: Request) {
+  if (!process.env.MONGODB_URI) {
+    return NextResponse.json({ error: 'MONGODB_URI not configured on server' }, { status: 503 });
+  }
   try {
     const auth = req.headers.get('authorization') || '';
     const token = auth.replace(/^Bearer\s+/i, '');
