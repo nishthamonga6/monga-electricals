@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #ffffff;
+  --fg: #0a0a0a;
+}
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  color: var(--fg);
+  background: var(--bg);
+}
+
+/* Brand logo sizing utility */
+.brand-logo {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+/* subtle site-wide section entrance animation */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.container-section > * {
+  animation: fadeUp 500ms ease both;
+}
+
+.container-section {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Marquee animation for brands: smooth infinite horizontal scroll */
+
+@keyframes marquee-left-single {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.marquee {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.marquee__track {
+  display: inline-flex;
+  gap: 1.25rem; /* 20px */
+  align-items: center;
+  will-change: transform;
+  /* animate a single pass across the viewport; it restarts when complete */
+  animation: marquee-left-single 20s linear infinite;
+}
+
+.marquee__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  padding: 0.75rem 1.5rem; /* px-6 py-4 */
+  min-width: 160px;
+  flex-shrink: 0;
+}
+
+/* slow down animation on hover for accessibility */
+.marquee:hover .marquee__track,
+.marquee:focus-within .marquee__track {
+  animation-play-state: paused;
+}
+
+/* smaller items on very small screens */
+@media (max-width: 420px) {
+  .marquee__item { min-width: 120px; padding-left: 12px; padding-right: 12px; }
+  .marquee__track { gap: 0.75rem; }
+}
+
+/* Assistant (floating chat) styles */
+.assistant-floating {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 60;
+}
+
+/* Modal overlay and container adjustments are handled by the component's Tailwind classes, but include a small utility here in case JS is disabled */
+.assistant-modal-fallback {
+  display: none;
+}
+
+/* Site-wide subtle entrance animation for sections to complement Framer Motion
+   Sections will fade and slide up on first render. Use --anim-delay to stagger. */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+section {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.6s ease forwards;
+  animation-delay: var(--anim-delay, 0s);
+}
+
+.brand-logo { transition: transform 180ms ease, filter 180ms ease; }
+.brand-logo:hover { transform: translateY(-3px); }
+
+
+

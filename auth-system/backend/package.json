@@ -1,0 +1,6 @@
+{
+  "name": "removed-backend",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Backend scaffold removed — placeholder package.json to avoid accidental starts"
+}
