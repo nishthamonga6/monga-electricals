@@ -66,13 +66,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: err?.message || 'Server error' }, { status: 500 });
   }
 }
-import { NextResponse } from 'next/server';
-
-// Orders API removed: routes are intentionally stubbed out per cleanup.
-export async function POST() {
-  return NextResponse.json({ error: 'orders API removed' }, { status: 410 });
-}
-
-export async function GET() {
-  return NextResponse.json({ error: 'orders API removed' }, { status: 410 });
-}
+// (file ends)

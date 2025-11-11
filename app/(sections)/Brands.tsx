@@ -68,11 +68,10 @@ export default function Brands() {
                 whileTap={{ scale: 0.98 }}
               >
                 <div className="w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 lg:w-48 lg:h-48 flex items-center justify-center bg-white rounded-md p-3 shadow-sm hover:shadow-md transition-shadow">
-                  {b.src.startsWith('/') ? (
-                    <Image src={b.src} alt={`${b.name} logo`} width={200} height={200} className="brand-logo" />
-                  ) : (
-                    <img src={b.src} alt={`${b.name} logo`} className="brand-logo" />
-                  )}
+                  {
+                    // Use next/image for both local and remote images to satisfy Next.js optimization
+                  }
+                  <Image src={b.src} alt={`${b.name} logo`} width={200} height={200} className="brand-logo" />
                 </div>
               </motion.div>
             ))}
@@ -90,11 +89,7 @@ export default function Brands() {
                   {brands.map((b) => (
                     <div key={b.id} className="flex items-center justify-center">
                       <div className="w-36 h-36 flex items-center justify-center bg-white rounded-md p-3 shadow-sm">
-                        {b.src.startsWith('/') ? (
-                          <Image src={b.src} alt={`${b.name} logo`} width={160} height={160} className="brand-logo" />
-                        ) : (
-                          <img src={b.src} alt={`${b.name} logo`} className="brand-logo" />
-                        )}
+                        <Image src={b.src} alt={`${b.name} logo`} width={160} height={160} className="brand-logo" />
                       </div>
                       <div className="text-center mt-2 text-sm">{b.name}</div>
                     </div>

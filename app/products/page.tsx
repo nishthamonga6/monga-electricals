@@ -30,9 +30,13 @@ export default function ProductsPage() {
                 {items.map((p: PType) => (
                   <div key={p.id} className="bg-white p-4 rounded shadow-sm flex flex-col">
                     <div className="h-28 w-full relative mb-3 bg-gray-50 flex items-center justify-center">
-                      {p.image ? (
-                        // Use Image when available; fallback to an <img> tag if next/image can't optimize SVG locally
-                        <img src={p.image} alt={p.name} className="max-h-20" />
+                      {p.imageUrl ? (
+                        // Prefer product imageUrl (local files placed in public/images/products)
+                        <Image src={p.imageUrl} alt={p.name} width={160} height={120} className="object-contain" />
+                      ) : p.image ? (
+                        // Fallback to legacy image (brand svg or other)
+                        // Render with next/image for consistent optimization (local assets)
+                        <Image src={p.image} alt={p.name} width={120} height={60} className="object-contain" />
                       ) : (
                         <div className="text-sm text-gray-400">No image</div>
                       )}
