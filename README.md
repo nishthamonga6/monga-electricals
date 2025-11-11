@@ -31,3 +31,5 @@ Then open http://localhost:1702 in your browser.
 ## Facebook
 
 We embed your page via the official Facebook Page Plugin at `components/FacebookPage.tsx`.
+<!-- redeploy-trigger -->
+Redeploy trigger: 2025-11-11T15:08:00Z
