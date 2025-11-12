@@ -17,7 +17,13 @@ function verifyToken(token: string | null) {
 
 export async function POST(req: Request) {
   try {
-    const db = await getDatabase();
+    let db;
+    try {
+      db = await getDatabase();
+    } catch (dbErr: any) {
+      console.error('MongoDB not configured', dbErr?.message || dbErr);
+      return NextResponse.json({ error: 'Database not configured' }, { status: 500 });
+    }
     const body = await req.json();
     const { items, total, customer } = body || {};
 
@@ -33,13 +39,14 @@ export async function POST(req: Request) {
     const payload = verifyToken(token);
     const userId = payload?.sub ?? null;
 
-    const orders = (await db).collection('orders');
+  const orders = db.collection('orders');
     const now = new Date();
 
     const orderDoc: any = { items, total: Number(total || 0), customer, userId: userId ? new ObjectId(userId) : null, status: 'pending', createdAt: now, source: 'web' };
 
     const res = await orders.insertOne(orderDoc);
-    return NextResponse.json({ ok: true, orderId: res.insertedId.toString() });
+    // Return the inserted id and the stored document (without internal _id object)
+    return NextResponse.json({ ok: true, orderId: res.insertedId.toString(), order: { ...orderDoc, orderId: res.insertedId.toString() } });
   } catch (err: any) {
     console.error('orders POST error', err);
     return NextResponse.json({ error: err?.message ?? 'Server error' }, { status: 500 });
