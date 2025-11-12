@@ -1,3 +1,4 @@
+// Fresh, minimal Orders API route
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { getDatabase } from '../../../lib/mongodb';
@@ -8,17 +9,18 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 function verifyToken(token: string | null) {
   if (!token) return null;
   try {
-    const payload: any = jwt.verify(token, JWT_SECRET);
-    return payload;
-  } catch (e) {
+    return jwt.verify(token, JWT_SECRET) as { sub?: string } | null;
+  } catch (err) {
     return null;
   }
 }
 
+// POST /api/orders
 export async function POST(req: Request) {
+  const db = await getDatabase();
   try {
     const body = await req.json();
-    const { items, total, customer } = body;
+    const { items, total, customer } = body || {};
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'No items' }, { status: 400 });
@@ -27,13 +29,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing customer info' }, { status: 400 });
     }
 
-    // Allow anonymous orders but prefer authenticated user
     const auth = req.headers.get('authorization') || '';
     const token = auth.replace(/^Bearer\s+/i, '') || null;
     const payload = verifyToken(token);
-    const userId = payload?.sub ? payload.sub : null;
+    const userId = payload?.sub ?? null;
 
-    const db = await getDatabase();
     const orders = db.collection('orders');
     const now = new Date();
 
@@ -48,13 +48,14 @@ export async function POST(req: Request) {
     };
 
     const res = await orders.insertOne(orderDoc);
-    return NextResponse.json({ orderId: res.insertedId.toString(), ok: true });
+    return NextResponse.json({ ok: true, orderId: res.insertedId.toString() });
   } catch (err: any) {
     console.error('orders POST error', err);
-    return NextResponse.json({ error: err?.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: err?.message ?? 'Server error' }, { status: 500 });
   }
 }
 
+// GET /api/orders - returns orders for the authenticated user
 export async function GET(req: Request) {
   try {
     const auth = req.headers.get('authorization') || '';
@@ -65,18 +66,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = payload.sub;
+    const userId = payload.sub as string;
     const db = await getDatabase();
     const orders = db.collection('orders');
 
-    const docs = await orders
-      .find({ userId: new ObjectId(userId) })
-      .sort({ createdAt: -1 })
-      .toArray();
-
+    const docs = await orders.find({ userId: new ObjectId(userId) }).sort({ createdAt: -1 }).toArray();
     return NextResponse.json({ orders: docs });
   } catch (err: any) {
     console.error('orders GET error', err);
-    return NextResponse.json({ error: err?.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: err?.message ?? 'Server error' }, { status: 500 });
   }
 }
