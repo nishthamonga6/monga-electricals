@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getDatabase } from '../../../../lib/mongodb';
+import { connectMongoose } from '../../../../lib/mongoose';
+import User from '../../../../models/User';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 
@@ -10,13 +11,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'MONGODB_URI not configured on server' }, { status: 503 });
   }
   try {
+    await connectMongoose();
     const body = await req.json();
     const { email, password } = body;
     if (!email || !password) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
-    const db = await getDatabase();
-    const users = db.collection('users');
-    const userDoc = await users.findOne({ email: email.toLowerCase() });
+    const userDoc = await User.findOne({ email: email.toLowerCase() }).exec();
     if (!userDoc) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
 
     const match = await bcrypt.compare(password, userDoc.passwordHash);
