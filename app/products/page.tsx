@@ -69,7 +69,7 @@ export default function ProductsPage() {
   const prod = PRODUCTS.find((p) => p.id === selected) || PRODUCTS[0];
 
   return (
-    <div className="container-section py-8">
+  <div className="container mx-auto max-w-7xl py-8 px-4">
       {!selected ? (
         // grid
         <div>
@@ -78,25 +78,38 @@ export default function ProductsPage() {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {PRODUCTS.map((p) => (
-              <div key={p.id} className="bg-white rounded shadow-sm p-3 hover:shadow-md transition flex flex-col">
-                <button aria-label={`View ${p.name}`} onClick={() => { setSelected(p.id); setMainImage(p.image); }} className="relative h-40 w-full mb-2 bg-gray-50 rounded flex items-center justify-center">
+              <div key={p.id} className="group relative bg-white rounded-lg shadow-sm p-3 hover:shadow-lg hover:-translate-y-1 transition-transform duration-200 flex flex-col">
+                {/* optional badge */}
+                {p.reviews > 100 && (
+                  <span className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-semibold px-2 py-0.5 rounded">Popular</span>
+                )}
+
+                <button aria-label={`View ${p.name}`} onClick={() => { setSelected(p.id); setMainImage(p.image); }} className="relative h-44 w-full mb-3 bg-gray-50 rounded overflow-hidden flex items-center justify-center">
                   <Image src={p.image} alt={p.name} fill className="object-contain p-2" />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity w-full h-full flex items-center justify-center">
+                      <span className="text-white text-sm opacity-0 group-hover:opacity-100">View details</span>
+                    </div>
+                  </div>
                 </button>
 
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
-                    <div className="text-sm font-medium text-gray-800">{p.name}</div>
-                    <button aria-label={wish[p.id] ? 'Remove from wishlist' : 'Add to wishlist'} title={wish[p.id] ? 'Remove from wishlist' : 'Add to wishlist'} onClick={() => toggleWish(p.id)} className="ml-2 text-gray-400 hover:text-red-500">
+                <div className="flex-1 flex flex-col">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">{p.name}</div>
+                      <div className="text-xs text-gray-500">Sold by Monga Electricals</div>
+                    </div>
+                    <button aria-label={wish[p.id] ? 'Remove from wishlist' : 'Add to wishlist'} title={wish[p.id] ? 'Remove from wishlist' : 'Add to wishlist'} onClick={() => toggleWish(p.id)} className="text-gray-400 hover:text-red-500">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={wish[p.id] ? 'red' : 'none'} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 21s-7-4.35-9.5-7.07A5.72 5.72 0 0 1 3 6.5 5.5 5.5 0 0 1 10 6c1.64 0 3.04.78 4 2 .96-1.22 2.36-2 4-2a5.5 5.5 0 0 1 7 5.43c0 2.31-1.18 4.28-3.5 6.43C19 16.65 12 21 12 21z" />
                       </svg>
                     </button>
                   </div>
 
-                  <div className="mt-1 text-sm text-gray-600">{p.desc ? (p.desc.length > 90 ? `${p.desc.slice(0, 90)}...` : p.desc) : ''}</div>
+                  <p className="mt-2 text-sm text-gray-600 line-clamp-3">{p.desc ? (p.desc.length > 140 ? `${p.desc.slice(0, 140)}...` : p.desc) : 'No description available.'}</p>
 
                   <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <div className="flex items-center text-yellow-500">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <svg key={i} className={`w-3 h-3 ${i < Math.round(p.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`} viewBox="0 0 20 20" fill="currentColor">
@@ -107,19 +120,30 @@ export default function ProductsPage() {
                       <div className="text-xs text-gray-600">{p.rating || '0'} • {p.reviews || 0}</div>
                     </div>
 
-                    <div>
+                    <div className="text-right">
                       {p.price ? (
-                        <div className="text-sm font-semibold">₹{p.price.toLocaleString()}</div>
+                        <div>
+                          <div className="text-lg font-bold text-gray-900">₹{p.price.toLocaleString()}</div>
+                          <div className="flex items-center justify-end gap-2 mt-1">
+                            <div className="text-xs text-gray-500 line-through">₹{Math.round(p.price * 1.2).toLocaleString()}</div>
+                            <div className="text-xs bg-red-50 text-red-600 font-semibold px-1.5 py-0.5 rounded">-{Math.round(((Math.round(p.price * 1.2) - p.price) / Math.round(p.price * 1.2)) * 100)}%</div>
+                          </div>
+                        </div>
                       ) : (
                         <div className="text-sm font-semibold">Contact</div>
                       )}
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-3 flex items-center justify-between">
-                  <button onClick={() => add({ id: p.id, name: p.name, qty: 1 })} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">Add</button>
-                  <div className="text-xs text-green-600 font-medium">{p.price ? 'In stock' : ''}</div>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <button onClick={() => add({ id: p.id, name: p.name, qty: 1 })} className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold">Add to cart</button>
+                    </div>
+                    <div className="w-28">
+                      <button onClick={() => setSelected(p.id)} className="w-full px-3 py-2 border rounded-md text-sm text-gray-700">View</button>
+                    </div>
+                    <div className="text-xs text-green-600 font-medium">{p.price ? 'In stock' : 'Out of stock'}</div>
+                  </div>
                 </div>
               </div>
             ))}
