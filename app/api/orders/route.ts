@@ -19,10 +19,15 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { items, total, customer } = body;
-    if (!items || !Array.isArray(items) || items.length === 0) return NextResponse.json({ error: 'No items' }, { status: 400 });
-    if (!customer || !customer.name || !customer.address) return NextResponse.json({ error: 'Missing customer info' }, { status: 400 });
 
-    // allow anonymous orders but prefer authenticated user
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: 'No items' }, { status: 400 });
+    }
+    if (!customer || !customer.name || !customer.address) {
+      return NextResponse.json({ error: 'Missing customer info' }, { status: 400 });
+    }
+
+    // Allow anonymous orders but prefer authenticated user
     const auth = req.headers.get('authorization') || '';
     const token = auth.replace(/^Bearer\s+/i, '') || null;
     const payload = verifyToken(token);
@@ -31,6 +36,7 @@ export async function POST(req: Request) {
     const db = await getDatabase();
     const orders = db.collection('orders');
     const now = new Date();
+
     const orderDoc: any = {
       items,
       total: Number(total || 0),
@@ -54,16 +60,23 @@ export async function GET(req: Request) {
     const auth = req.headers.get('authorization') || '';
     const token = auth.replace(/^Bearer\s+/i, '') || null;
     const payload = verifyToken(token);
-    if (!payload?.sub) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    if (!payload?.sub) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const userId = payload.sub;
     const db = await getDatabase();
     const orders = db.collection('orders');
-    const docs = await orders.find({ userId: new ObjectId(userId) }).sort({ createdAt: -1 }).toArray();
+
+    const docs = await orders
+      .find({ userId: new ObjectId(userId) })
+      .sort({ createdAt: -1 })
+      .toArray();
+
     return NextResponse.json({ orders: docs });
   } catch (err: any) {
     console.error('orders GET error', err);
     return NextResponse.json({ error: err?.message || 'Server error' }, { status: 500 });
   }
 }
-// (file ends)
