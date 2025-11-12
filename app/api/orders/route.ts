@@ -1,24 +1,23 @@
-// Fresh, minimal Orders API route
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { getDatabase } from '../../../lib/mongodb';
 import { ObjectId } from 'mongodb';
 
+// Minimal, single-definition Orders API route
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 
 function verifyToken(token: string | null) {
   if (!token) return null;
   try {
     return jwt.verify(token, JWT_SECRET) as { sub?: string } | null;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
 
-// POST /api/orders
 export async function POST(req: Request) {
-  const db = await getDatabase();
   try {
+    const db = await getDatabase();
     const body = await req.json();
     const { items, total, customer } = body || {};
 
@@ -34,18 +33,10 @@ export async function POST(req: Request) {
     const payload = verifyToken(token);
     const userId = payload?.sub ?? null;
 
-    const orders = db.collection('orders');
+    const orders = (await db).collection('orders');
     const now = new Date();
 
-    const orderDoc: any = {
-      items,
-      total: Number(total || 0),
-      customer,
-      userId: userId ? new ObjectId(userId) : null,
-      status: 'pending',
-      createdAt: now,
-      source: 'web',
-    };
+    const orderDoc: any = { items, total: Number(total || 0), customer, userId: userId ? new ObjectId(userId) : null, status: 'pending', createdAt: now, source: 'web' };
 
     const res = await orders.insertOne(orderDoc);
     return NextResponse.json({ ok: true, orderId: res.insertedId.toString() });
@@ -55,7 +46,6 @@ export async function POST(req: Request) {
   }
 }
 
-// GET /api/orders - returns orders for the authenticated user
 export async function GET(req: Request) {
   try {
     const auth = req.headers.get('authorization') || '';
