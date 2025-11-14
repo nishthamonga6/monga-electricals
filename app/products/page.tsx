@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { useCart } from '@/components/CartContext';
 
@@ -33,6 +33,7 @@ const PRODUCTS = [
 
 export default function ProductsPage() {
   const { add } = useCart();
+  // UI states
   const [wish, setWish] = useState<Record<string, boolean>>({});
   const [selected, setSelected] = useState<string | null>(null);
   const [mainImage, setMainImage] = useState<string>(PRODUCTS[0].image);
@@ -40,6 +41,10 @@ export default function ProductsPage() {
   const [tab, setTab] = useState<'description' | 'specs' | 'reviews'>('description');
   const [recent, setRecent] = useState<string[]>([]);
   const mainRef = useRef<HTMLDivElement | null>(null);
+  const [search, setSearch] = useState('');
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantQuery, setAssistantQuery] = useState('');
+  const [assistantResults, setAssistantResults] = useState<typeof PRODUCTS>([]);
 
   const toggleWish = (id: string) => setWish((s) => ({ ...s, [id]: !s[id] }));
 
@@ -68,23 +73,84 @@ export default function ProductsPage() {
 
   const prod = PRODUCTS.find((p) => p.id === selected) || PRODUCTS[0];
 
+  // Smart filtering (lightweight "AI-ish" behavior: fuzzy-ish match + ranking)
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return PRODUCTS;
+    // boost by name match, then desc, then reviews/rating
+    const tokens = q.split(/\s+/).filter(Boolean);
+    const score = (p: typeof PRODUCTS[0]) => {
+      let s = 0;
+      const name = (p.name || '').toLowerCase();
+      const desc = (p.desc || '').toLowerCase();
+      for (const t of tokens) {
+        if (name.includes(t)) s += 10;
+        if (desc.includes(t)) s += 5;
+        if (String(p.price).includes(t)) s += 3;
+      }
+      s += (p.reviews || 0) * 0.01 + (p.rating || 0) * 1; // small popularity boost
+      return s;
+    };
+    return [...PRODUCTS].map((p) => ({ p, s: score(p) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s).map(x => x.p);
+  }, [search]);
+
+  // Simple assistant: keyword matching + explanation
+  const runAssistant = (query: string) => {
+    const q = (query || '').toLowerCase();
+    if (!q) {
+      setAssistantResults([]);
+      return;
+    }
+    // match words from query to product name/desc
+    const tokens = q.split(/\s+/).filter(Boolean);
+    const matches = PRODUCTS.map((p) => {
+      let s = 0;
+      const hay = (p.name + ' ' + (p.desc || '')).toLowerCase();
+      for (const t of tokens) if (hay.includes(t)) s += 1;
+      return { p, s };
+    }).filter(x => x.s > 0).sort((a, b) => b.s - a.s).map(x => x.p);
+    setAssistantResults(matches.slice(0, 8));
+  };
+
   return (
-  <div className="container mx-auto max-w-7xl py-8 px-4">
+  <div className="container mx-auto max-w-7xl py-8 px-4" role="main">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <div>
+        <h2 className="text-3xl font-extrabold tracking-tight">Products</h2>
+        <p className="text-sm text-gray-600">Curated tools & appliances — professional grade.</p>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <input aria-label="Search products" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Smart search — try 'water heater' or 'welding'" className="pl-10 pr-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-indigo-500 w-72" />
+          <div className="absolute left-3 top-2.5 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 3.5a7.5 7.5 0 0013.15 13.15z" />
+            </svg>
+          </div>
+        </div>
+        <button onClick={() => { setAssistantOpen(true); setAssistantQuery(''); setAssistantResults([]); }} className="px-3 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 text-sm">Ask Assistant</button>
+      </div>
+    </div>
       {!selected ? (
         // grid
         <div>
-          <h2 className="text-2xl font-bold mb-2">All Products</h2>
-          <p className="text-sm text-gray-600 mb-4">Browse our catalog. Click an image to view details.</p>
+          <div className="mb-4" role="region" aria-label="Product catalog">
+            {search ? (
+              <p className="text-sm text-gray-600 mb-2">Showing {filtered.length} result(s) for "{search}"</p>
+            ) : (
+              <p className="text-sm text-gray-600 mb-2">Browse our catalog. Click an item to view details.</p>
+            )}
+          </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {PRODUCTS.map((p) => (
-              <div key={p.id} className="group relative bg-white rounded-lg shadow-sm p-3 hover:shadow-lg hover:-translate-y-1 transition-transform duration-200 flex flex-col">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" role="list">
+            {(search ? filtered : PRODUCTS).map((p) => (
+              <article key={p.id} role="listitem" aria-labelledby={`title-${p.id}`} className="group relative bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl hover:-translate-y-1 transition-transform duration-200 flex flex-col">
                 {/* optional badge */}
                 {p.reviews > 100 && (
                   <span className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-semibold px-2 py-0.5 rounded">Popular</span>
                 )}
 
-                <button aria-label={`View ${p.name}`} onClick={() => { setSelected(p.id); setMainImage(p.image); }} className="relative h-44 w-full mb-3 bg-gray-50 rounded overflow-hidden flex items-center justify-center">
+                <button aria-label={`View ${p.name}`} onClick={() => { setSelected(p.id); setMainImage(p.image); }} className="relative h-56 md:h-64 w-full mb-4 bg-gray-50 rounded overflow-hidden flex items-center justify-center focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-300">
                   <Image src={p.image} alt={p.name} fill className="object-contain p-2" />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity w-full h-full flex items-center justify-center">
@@ -96,7 +162,7 @@ export default function ProductsPage() {
                 <div className="flex-1 flex flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="text-sm font-semibold text-gray-900">{p.name}</div>
+                      <div id={`title-${p.id}`} className="text-sm font-semibold text-gray-900">{p.name}</div>
                       <div className="text-xs text-gray-500">Sold by Monga Electricals</div>
                     </div>
                     <button aria-label={wish[p.id] ? 'Remove from wishlist' : 'Add to wishlist'} title={wish[p.id] ? 'Remove from wishlist' : 'Add to wishlist'} onClick={() => toggleWish(p.id)} className="text-gray-400 hover:text-red-500">
@@ -135,23 +201,23 @@ export default function ProductsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between gap-3">
+                  <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                     <div className="flex-1">
-                      <button onClick={() => add({ id: p.id, name: p.name, qty: 1 })} className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold">Add to cart</button>
+                      <button onClick={() => add({ id: p.id, name: p.name, qty: 1 })} className="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold focus-visible:ring-2 focus-visible:ring-emerald-400">Add to cart</button>
                     </div>
-                    <div className="w-28">
-                      <button onClick={() => setSelected(p.id)} className="w-full px-3 py-2 border rounded-md text-sm text-gray-700">View</button>
+                    <div className="sm:ml-2">
+                      <button onClick={() => setSelected(p.id)} className="w-full sm:w-28 px-3 py-2 border rounded-md text-sm text-gray-700 focus-visible:ring-2 focus-visible:ring-indigo-300">View</button>
                     </div>
-                    <div className="text-xs text-green-600 font-medium">{p.price ? 'In stock' : 'Out of stock'}</div>
+                    <div className="text-sm text-green-600 font-medium mt-2 sm:mt-0">{p.price ? 'In stock' : 'Out of stock'}</div>
                   </div>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </div>
       ) : (
-        /* Detail view */
-        <div className="bg-white rounded-lg shadow-sm p-6">
+  /* Detail view */
+  <div className="bg-white rounded-lg shadow-sm p-6" aria-live="polite">
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => setSelected(null)} className="text-sm text-blue-600 underline">Back to products</button>
             <div className="text-sm text-gray-600">Product detail</div>
@@ -173,7 +239,7 @@ export default function ProductsPage() {
             <div className="lg:col-span-5">
               <div className="bg-gray-50 rounded-lg p-4">
                 <div ref={mainRef} className="relative w-full h-96 bg-white overflow-hidden rounded-lg group">
-                  <Image src={mainImage} alt={prod.name} fill className="object-contain transition-transform duration-500 group-hover:scale-110" />
+                  <Image src={mainImage} alt={prod.name} fill className="object-contain transition-transform duration-500 group-hover:scale-110" priority />
                 </div>
 
                 <div className="mt-4 flex gap-3 overflow-x-auto lg:overflow-visible">
@@ -222,8 +288,8 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-3">
-                  <button onClick={() => add({ id: prod.id, name: prod.name, qty })} className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 rounded font-semibold">Add to Cart</button>
-                  <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded font-semibold">Buy Now</button>
+                  <button onClick={() => add({ id: prod.id, name: prod.name, qty })} className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 rounded font-semibold focus-visible:ring-2 focus-visible:ring-yellow-300">Add to Cart</button>
+                  <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded font-semibold focus-visible:ring-2 focus-visible:ring-orange-300">Buy Now</button>
                 </div>
               </div>
             </div>
@@ -243,6 +309,43 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
+
+    {/* Assistant modal (lightweight client-side helper) */}
+    {assistantOpen && (
+      <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black opacity-30" onClick={() => setAssistantOpen(false)} />
+        <div className="relative z-10 max-w-2xl w-full bg-white rounded shadow-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Product Assistant</h3>
+            <button aria-label="Close assistant" onClick={() => setAssistantOpen(false)} className="text-gray-600 hover:text-gray-800">✕</button>
+          </div>
+          <p className="text-sm text-gray-600 mb-3">Ask in plain English and the assistant will suggest products. (Local, private)</p>
+          <div className="flex gap-2 mb-4">
+            <input value={assistantQuery} onChange={(e) => setAssistantQuery(e.target.value)} placeholder="e.g. 'give me water heaters under 12000'" className="flex-1 border rounded px-3 py-2" />
+            <button onClick={() => runAssistant(assistantQuery)} className="px-3 py-2 bg-indigo-600 text-white rounded">Suggest</button>
+          </div>
+          <div>
+            {assistantResults.length === 0 ? (
+              <p className="text-sm text-gray-500">No suggestions yet. Try terms like 'heater', 'welding', 'cheap', or a brand name.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {assistantResults.map(r => (
+                  <button key={r.id} onClick={() => { setSelected(r.id); setAssistantOpen(false); }} className="text-left p-3 border rounded hover:shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-12 h-12 flex-shrink-0"><Image src={r.image} alt={r.name} fill className="object-contain p-1" /></div>
+                      <div>
+                        <div className="font-medium">{r.name}</div>
+                        <div className="text-xs text-gray-600">₹{r.price ? r.price.toLocaleString() : 'Contact'}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
