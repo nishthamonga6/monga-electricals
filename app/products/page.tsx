@@ -114,7 +114,7 @@ export default function ProductsPage() {
   };
 
   return (
-  <div className="container mx-auto max-w-7xl py-8 px-4 pr-6 lg:pr-28" role="main">
+  <div className="container mx-auto max-w-7xl py-8 px-4 pr-6 lg:pr-36 xl:pr-48" role="main">
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
       <div>
         <h2 className="text-3xl font-extrabold tracking-tight">Products</h2>
@@ -145,7 +145,7 @@ export default function ProductsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" role="list">
             {(search ? filtered : PRODUCTS).map((p) => (
-              <article key={p.id} role="listitem" aria-labelledby={`title-${p.id}`} className="group relative bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl hover:-translate-y-1 transition-transform duration-200 flex flex-col min-h-[520px]">
+              <article key={p.id} role="listitem" aria-labelledby={`title-${p.id}`} className="group relative bg-white rounded-2xl shadow-lg p-8 pb-12 hover:shadow-2xl hover:-translate-y-1 transition-transform duration-200 flex flex-col min-h-[520px]">
                 {/* optional badge */}
                 {p.reviews > 100 && (
                   <span className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-semibold px-2 py-0.5 rounded">Popular</span>
@@ -202,29 +202,29 @@ export default function ProductsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-col sm:flex-row items-center gap-3">
-                    <div>
-                      <button
-                        onClick={() => {
-                          add({ id: p.id, name: p.name, qty: 1 });
-                          setAdded((s) => ({ ...s, [p.id]: true }));
-                          setTimeout(() => setAdded((s) => ({ ...s, [p.id]: false })), 1400);
-                        }}
-                        className={`px-4 py-3 bg-emerald-600 text-white rounded-md font-semibold focus-visible:ring-2 focus-visible:ring-emerald-400 transform transition-all duration-300 flex items-center justify-center gap-2 ${added[p.id] ? 'scale-95 shadow-lg' : 'hover:-translate-y-0.5 hover:shadow-xl active:scale-95'} w-full sm:w-40 md:w-44 lg:w-48`}
-                      >
-                        <span className={`inline-flex items-center justify-center w-5 h-5 ${added[p.id] ? 'animate-pulse' : ''}`}>
-                          {added[p.id] ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0 10-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z" clipRule="evenodd"/></svg>
-                          ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m5-9v9m4-9v9m4-9l2 9"/></svg>
-                          )}
-                        </span>
-                        <span className="truncate">{added[p.id] ? 'Added' : 'Add'}</span>
-                      </button>
+                  <div className="mt-auto w-full border-t border-gray-100 pt-4 flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        add({ id: p.id, name: p.name, qty: 1 });
+                        setAdded((s) => ({ ...s, [p.id]: true }));
+                        setTimeout(() => setAdded((s) => ({ ...s, [p.id]: false })), 1400);
+                      }}
+                      className={`w-full sm:w-40 md:w-44 lg:w-48 px-4 py-3 bg-emerald-600 text-white rounded-md font-semibold focus-visible:ring-2 focus-visible:ring-emerald-400 transform transition-all duration-300 flex items-center justify-center gap-2 ${added[p.id] ? 'scale-95 shadow-lg' : 'hover:-translate-y-0.5 hover:shadow-xl active:scale-95'}`}
+                    >
+                      <span className={`inline-flex items-center justify-center w-5 h-5 ${added[p.id] ? 'animate-pulse' : ''}`}>
+                        {added[p.id] ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0 10-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z" clipRule="evenodd"/></svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m5-9v9m4-9v9m4-9l2 9"/></svg>
+                        )}
+                      </span>
+                      <span className="truncate">{added[p.id] ? 'Added' : 'Add'}</span>
+                    </button>
+
+                    <div className="flex-none">
+                      <button onClick={() => setSelected(p.id)} className="w-28 px-3 py-2 border rounded-md text-sm text-gray-700 focus-visible:ring-2 focus-visible:ring-indigo-300">View</button>
                     </div>
-                    <div className="w-full sm:w-auto">
-                      <button onClick={() => setSelected(p.id)} className="w-full sm:w-28 px-3 py-2 border rounded-md text-sm text-gray-700 focus-visible:ring-2 focus-visible:ring-indigo-300">View</button>
-                    </div>
+
                     <div className="ml-auto text-sm text-green-600 font-medium">{p.price ? 'In stock' : 'Out of stock'}</div>
                   </div>
                 </div>
